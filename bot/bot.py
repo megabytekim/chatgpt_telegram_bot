@@ -35,6 +35,9 @@ import config
 import database
 import openai_utils
 
+telegram_token = config.telegram_token
+# print(telegram_token)
+# exit()
 
 # setup
 db = database.Database()
@@ -394,7 +397,7 @@ async def post_init(application: Application):
 def run_bot() -> None:
     application = (
         ApplicationBuilder()
-        .token(config.telegram_token)
+        .token(telegram_token)
         .concurrent_updates(True)
         .rate_limiter(AIORateLimiter(max_retries=5))
         .post_init(post_init)

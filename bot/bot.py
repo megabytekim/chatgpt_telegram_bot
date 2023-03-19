@@ -9,6 +9,8 @@ import pydub
 from pathlib import Path
 from datetime import datetime
 
+from pykrx import stock
+
 import telegram
 from telegram import (
     Update, 
@@ -272,6 +274,18 @@ async def voice_message_handle(update: Update, context: CallbackContext):
     n_used_tokens = int(n_spent_dollars / (price_per_1000_tokens / 1000))
     db.set_user_attribute(user_id, "n_used_tokens", n_used_tokens + db.get_user_attribute(user_id, "n_used_tokens"))
 
+async def stock_handle(update: Update, context: CallbackContext):
+    message = update.message.text
+    words = message.split()
+
+    df = stock.stock_api.get_market_price_change(words[2], words[3])
+    df.sort_values(inplace=True, by='등락률', ascending=False)
+    df = df[['종목명', '등락률', '시가', '종가']]
+
+    await update.message.reply_text("✅주식 상승률 TOP5 {} ~ {}".format(words[2], words[3]))
+
+    df_string = df.head(5).to_string(index=False, justify='left', col_space=10)
+    await update.message.reply_text("```\n{}\n```".format(df_string))
 
 async def new_dialog_handle(update: Update, context: CallbackContext):
     await register_user_if_not_exists(update, context, update.message.from_user)
@@ -400,6 +414,8 @@ def run_bot() -> None:
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & user_filter, message_handle))
     application.add_handler(CommandHandler("retry", retry_handle, filters=user_filter))
     application.add_handler(CommandHandler("new", new_dialog_handle, filters=user_filter))
+
+    application.add_handler(CommandHandler("stock", stock_handle, filters=user_filter))
 
     application.add_handler(MessageHandler(filters.VOICE & user_filter, voice_message_handle))
     
